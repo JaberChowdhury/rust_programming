@@ -1,0 +1,14 @@
+{
+  "id": 1042,
+  "username": "johndoe1",
+  "email": "john.doe@example.com",
+  "is_active": true,
+  "roles": ["User", "Moderator"],
+  "profile": {
+    "first_name": "John",
+    "last_name": "Doe",
+    "age": 30,
+    "location": "New York, NY"
+  },
+  "preferences": null
+}

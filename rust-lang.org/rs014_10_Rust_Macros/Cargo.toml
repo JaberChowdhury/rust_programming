@@ -1,0 +1,6 @@
+[package]
+name = "rs014_10_Rust_Macros"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
