@@ -5,6 +5,7 @@ fn main() {
         depth: Z,
     }
 
+    #[derive(Debug)]
     struct ReturnType {
         value: String,
         count: i32,
@@ -27,7 +28,6 @@ fn main() {
             depth: 123,
         },
     ];
-
     let mut result_collection: [ReturnType; 2] = [
         ReturnType {
             value: String::from("value"),
@@ -62,5 +62,19 @@ fn main() {
     // Iterate with index
     for (i, val) in arr.iter().enumerate() {
         println!("arr[{i}] = {val}");
+    }
+
+    // safe access of vector index
+    let counts = vec![12, 21, 23, 32, 34, 43, 45, 54];
+    match counts.get(24) {
+        None => println!("Index is out of bound !!!"),
+        Some(index) => println!("{index}"),
+    }
+
+    match result_collection.get(1) {
+        Some(item) => {
+            dbg!(item);
+        }
+        None => println!("Index is out of bounds!"),
     }
 }

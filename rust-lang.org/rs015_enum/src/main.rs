@@ -23,6 +23,13 @@ fn calculate_area(shape: &Shape) -> f64 {
     }
 }
 
+fn increase_by_one(x: Option<f32>) -> Option<f32> {
+    match x {
+        None => None,
+        Some(i) => Some(i + 1.0),
+    }
+}
+
 fn main() {
     let my_circle = Shape::Circle(Circle { radius: 5.0 });
     let my_rect = Shape::Rectangle(Rectangle {
@@ -30,6 +37,8 @@ fn main() {
         height: 20.0,
     });
 
+    dbg!(increase_by_one(Some(12.21)));
+    dbg!(increase_by_one(None));
     println!("Shape 1: {:?}", my_circle);
     println!("Area of circle: {:.2}", calculate_area(&my_circle));
 
