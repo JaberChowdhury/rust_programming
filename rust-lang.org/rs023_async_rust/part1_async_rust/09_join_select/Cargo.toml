@@ -1,0 +1,8 @@
+[package]
+name = "p1_09_join_select"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.38", features = ["full"] }
+futures = "0.3"

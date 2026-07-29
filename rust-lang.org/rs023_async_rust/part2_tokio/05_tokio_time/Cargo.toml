@@ -1,0 +1,7 @@
+[package]
+name = "p2_05_tokio_time"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.38", features = ["full"] }

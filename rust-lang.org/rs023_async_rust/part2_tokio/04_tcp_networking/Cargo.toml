@@ -1,0 +1,7 @@
+[package]
+name = "p2_04_tcp_networking"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.38", features = ["full"] }

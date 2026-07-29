@@ -1,0 +1,8 @@
+[package]
+name = "p2_09_error_handling_tasks"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.38", features = ["full"] }
+anyhow = "1"
