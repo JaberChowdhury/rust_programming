@@ -178,7 +178,6 @@ impl Snake {
         worst
     }
 
-
     pub fn best_safe_angle(
         head: Vec2,
         desired: Vec2,
@@ -195,18 +194,18 @@ impl Snake {
         let mut best = cur;
         let mut best_s = f32::MAX;
         let mut blocked_rays = 0;
-        
+
         for i in 0..RAY_COUNT {
             let ra = (i as f32 / RAY_COUNT as f32) * std::f32::consts::TAU;
             let dir = vec2(ra.cos(), ra.sin());
             let danger = Self::ray_danger(
                 head, dir, grid, all_segs, all_angles, obstacles, my_idx, w, h, my_radius,
             );
-            
+
             if danger > 0.4 {
                 blocked_rays += 1;
             }
-            
+
             let align = 1.0 - (dir.dot(desired) + 1.0) / 2.0;
             let mid = head + dir * (RAY_LENGTH * 0.6);
             let far = head + dir * RAY_LENGTH;
@@ -218,7 +217,7 @@ impl Snake {
                 best = ra;
             }
         }
-        
+
         let panic = blocked_rays >= (RAY_COUNT * 5) / 8; // If more than ~60% of escape routes are blocked, panic!
         (best, panic)
     }
@@ -238,9 +237,9 @@ impl Snake {
         my_idx: usize,
         is_leader: bool,
         rank: usize,
-    ) {
+    ) -> bool {
         if self.dead || self.segments.is_empty() {
-            return;
+            return false;
         }
 
         self.glow_timer = (self.glow_timer - dt).max(0.0);
@@ -373,11 +372,11 @@ impl Snake {
             SnakeState::Foraging => {
                 let mut best_idx = None;
                 let mut best_score = f32::MAX;
-                
+
                 // Only evaluate foods within an 800-pixel radius (squared to avoid sqrt).
                 // This avoids calling `count_nearby` (and doing full loops) on thousands of far away foods!
                 let max_dist_sq = 800.0 * 800.0;
-                
+
                 for (i, f) in foods.iter().enumerate() {
                     if is_leader && f.lifetime.is_none() {
                         continue;
@@ -386,17 +385,18 @@ impl Snake {
                     if dist_sq > max_dist_sq {
                         continue;
                     }
-                    
+
                     let true_dist = dist_sq.sqrt();
-                    let cluster = fg.count_nearby(f.pos, crate::constants::CLUSTER_BONUS_RADIUS) as f32;
+                    let cluster =
+                        fg.count_nearby(f.pos, crate::constants::CLUSTER_BONUS_RADIUS) as f32;
                     let score = true_dist - cluster * crate::constants::CLUSTER_BONUS_WEIGHT;
-                    
+
                     if score < best_score {
                         best_score = score;
                         best_idx = Some(i);
                     }
                 }
-                
+
                 if let Some(idx) = best_idx {
                     (foods[idx].pos - head).normalize_or_zero()
                 } else {
@@ -520,18 +520,18 @@ impl Snake {
         let nh = head + vec2(self.angle.cos(), self.angle.sin()) * speed * dt;
         if nh.x < 0.0 || nh.x > w || nh.y < 0.0 || nh.y > h {
             self.dead = true;
-            return;
+            return false;
         }
         self.segments[0] = nh;
 
         self.path.push_front(nh);
-        
+
         // Compute path distances and dynamically truncate the path so it never exceeds the snake's actual physical length.
         // This ensures new segments stack neatly at the tail instead of reaching into deep history.
         let mut path_dist = vec![0.0; self.path.len()];
         let slen = self.segment_length();
         let max_dist = self.segments.len() as f32 * slen;
-        
+
         for i in 1..self.path.len() {
             path_dist[i] = path_dist[i - 1] + self.path[i - 1].distance(self.path[i]);
             if path_dist[i] > max_dist + slen {
@@ -586,6 +586,7 @@ impl Snake {
             }
         }
 
+        let mut ate_food = false;
         let eat_r = self.radius() + FOOD_RADIUS;
         foods.retain(|f| {
             if self.segments[0].distance(f.pos) < eat_r {
@@ -593,6 +594,7 @@ impl Snake {
                     // Leader can only eat dead bodies (which have a lifetime)
                     return true;
                 }
+                ate_food = true;
                 match f.kind {
                     FoodKind::Normal => self.grow_queue += 1,
                     FoodKind::Speed => {
@@ -621,6 +623,7 @@ impl Snake {
             self.segments.push(last);
             self.grow_queue -= 1;
         }
+        ate_food
     }
 
     pub fn draw(&self, shaders: &[Material], is_leader: bool) {

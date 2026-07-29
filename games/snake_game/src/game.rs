@@ -9,7 +9,6 @@ struct Notification {
     text: String,
     color: Color,
     timer: f32,
-    max_timer: f32,
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -20,6 +19,10 @@ pub async fn run_game() {
     let font = load_ttf_font("assets/Orbitron-Regular.ttf")
         .await
         .expect("Font not found. Place assets/Orbitron-Regular.ttf in the game folder.");
+
+    let eat_sound = macroquad::audio::load_sound("assets/eat.wav")
+        .await
+        .expect("Eat sound not found in assets/eat.wav");
 
     let _mat_params = MaterialParams {
         uniforms: vec![UniformDesc::new("time", UniformType::Float1)],
@@ -63,6 +66,7 @@ pub async fn run_game() {
     let mut selected_id: Option<u32> = None;
     let mut cam_mode = CamMode::FullMap;
     let mut show_ui = true;
+    let mut sound_enabled = true;
     let mut death_cam_override: Option<(Vec2, f32, u32)> = None;
     let mut actual_cam_target = vec2(ARENA_W / 2.0, ARENA_H / 2.0);
 
@@ -149,17 +153,16 @@ pub async fn run_game() {
             let x = macroquad::rand::gen_range(80.0, ARENA_W - 80.0);
             let y = macroquad::rand::gen_range(80.0, ARENA_H - 80.0);
             let new_snake = Snake::new(x, y, 10, color, next_id);
-            
+
             // Only notify if we aren't completely initializing the game
             if next_id > MAX_SNAKES as u32 {
                 notifications.push(Notification {
-                    text: format!("{} joined the arena!", new_snake.name),
-                    color: Color::new(0.3, 1.0, 0.4, 1.0),
-                    timer: 3.0,
-                    max_timer: 3.0,
+                    text: format!("{} joined the game", new_snake.name),
+                    color: Color::new(0.5, 1.0, 0.5, 1.0),
+                    timer: 2.0,
                 });
             }
-            
+
             snakes.push(new_snake);
             next_id += 1;
         }
@@ -200,7 +203,7 @@ pub async fn run_game() {
             let is_leader = snake.id == leader_id;
             let my_len = snake.segments.len();
             let rank = all_segs.iter().filter(|s| s.len() > my_len).count() + 1;
-            snake.update(
+            let ate = snake.update(
                 dt,
                 &mut foods,
                 &food_grid,
@@ -215,6 +218,15 @@ pub async fn run_game() {
                 is_leader,
                 rank,
             );
+            if ate && Some(snake.id) == selected_id && sound_enabled {
+                macroquad::audio::play_sound(
+                    &eat_sound,
+                    macroquad::audio::PlaySoundParams {
+                        looped: false,
+                        volume: 1.0,
+                    },
+                );
+            }
         }
 
         // ── Collisions ─────────────────────────────────────────────────────────
@@ -240,14 +252,16 @@ pub async fn run_game() {
                         snakes[i].dead = true;
                         killers.push((si, snakes[i].segments.len(), snakes[i].id));
                         dead_ids.push(snakes[i].id);
-                        
+
                         notifications.push(Notification {
-                            text: format!("{} was eliminated by {}!", snakes[i].name, snakes[si].name),
+                            text: format!(
+                                "{} was eliminated by {}!",
+                                snakes[i].name, snakes[si].name
+                            ),
                             color: Color::new(1.0, 0.4, 0.4, 1.0),
                             timer: 3.5,
-                            max_timer: 3.5,
                         });
-                        
+
                         break 'col;
                     }
                 }
@@ -916,8 +930,14 @@ pub async fn run_game() {
                     tp(&font, 16, Color::new(0.70, 0.75, 0.95, 0.80)),
                 );
 
-                let get_name = |id| snakes.iter().find(|s| s.id == id).map(|s| s.name.clone()).unwrap_or_else(|| "?".to_string());
-                
+                let get_name = |id| {
+                    snakes
+                        .iter()
+                        .find(|s| s.id == id)
+                        .map(|s| s.name.clone())
+                        .unwrap_or_else(|| "?".to_string())
+                };
+
                 // State label (feed or target id)
                 let (st_label, st_col) = match snake.state {
                     SnakeState::Hunting { target_id, .. } => (
@@ -1072,13 +1092,21 @@ pub async fn run_game() {
                     .map(|r| r + 1)
                     .unwrap_or(0);
 
-                let get_name = |id| snakes.iter().find(|s| s.id == id).map(|s| s.name.clone()).unwrap_or_else(|| "?".to_string());
+                let get_name = |id| {
+                    snakes
+                        .iter()
+                        .find(|s| s.id == id)
+                        .map(|s| s.name.clone())
+                        .unwrap_or_else(|| "?".to_string())
+                };
 
                 let state_str = match snake.state {
                     SnakeState::Hunting { target_id, .. } => {
                         format!("  |  HUNTING {}", get_name(target_id))
                     }
-                    SnakeState::Fleeing { threat_id } => format!("  |  FLEEING {}", get_name(threat_id)),
+                    SnakeState::Fleeing { threat_id } => {
+                        format!("  |  FLEEING {}", get_name(threat_id))
+                    }
                     SnakeState::Foraging => "  |  FEEDING".to_string(),
                 };
 
@@ -1166,37 +1194,48 @@ pub async fn run_game() {
         }
 
         // ── Notifications ──────────────────────────────────────────────────────
-        let mut n_y = 60.0; // Start a bit below the top
+        let mut n_y = sh - 40.0; // Start near the bottom left
         for n in &mut notifications {
             if n.timer > 0.0 {
                 n.timer -= dt;
-                
+
                 // Fade out effect
                 let alpha = (n.timer / 1.0).min(1.0);
-                
-                // Slide up effect on fade out
-                let slide_y = if n.timer < 0.5 { (0.5 - n.timer) * 40.0 } else { 0.0 };
-                
+
+                // Slide down effect on fade out (since it's at the bottom)
+                let slide_y = if n.timer < 0.5 {
+                    (0.5 - n.timer) * 40.0
+                } else {
+                    0.0
+                };
+
                 let mut col = n.color;
                 col.a = alpha;
-                
-                let text_dims = measure_text(&n.text, Some(&font), 20, 1.0);
-                let box_w = text_dims.width + 32.0;
-                let box_h = 36.0;
-                let box_x = (sw - box_w) / 2.0;
-                let final_y = n_y - slide_y;
-                
-                draw_rectangle(box_x, final_y, box_w, box_h, Color::new(0.05, 0.05, 0.1, 0.8 * alpha));
-                draw_rectangle_lines(box_x, final_y, box_w, box_h, 1.0, col);
-                
+
+                let font_size = 14;
+                let text_dims = measure_text(&n.text, Some(&font), font_size, 1.0);
+                let box_w = text_dims.width + 16.0;
+                let box_h = 24.0;
+                let box_x = 16.0; // Bottom left corner
+                let final_y = n_y + slide_y;
+
+                // Keep the subtle dark background for readability
+                draw_rectangle(
+                    box_x,
+                    final_y,
+                    box_w,
+                    box_h,
+                    Color::new(0.05, 0.05, 0.1, 0.8 * alpha),
+                );
+
                 draw_text_ex(
                     &n.text,
-                    box_x + 16.0,
-                    final_y + 24.0,
-                    tp(&font, 20, col),
+                    box_x + 8.0,
+                    final_y + 16.0,
+                    tp(&font, font_size, col),
                 );
-                
-                n_y += box_h + 8.0;
+
+                n_y -= box_h + 8.0; // Move up for the next notification
             }
         }
         notifications.retain(|n| n.timer > 0.0);
@@ -1204,6 +1243,9 @@ pub async fn run_game() {
         // ── Input handling ─────────────────────────────────────────────────────
         if is_key_pressed(KeyCode::H) || is_key_pressed(KeyCode::Tab) {
             show_ui = !show_ui;
+        }
+        if is_key_pressed(KeyCode::M) {
+            sound_enabled = !sound_enabled;
         }
 
         if is_mouse_button_pressed(MouseButton::Left) {
