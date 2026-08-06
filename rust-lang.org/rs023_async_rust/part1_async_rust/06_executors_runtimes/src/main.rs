@@ -19,7 +19,9 @@ fn main() {
         print_thread_id("Task 1 (CurrentThread)");
         tokio::spawn(async {
             print_thread_id("Task 2 (CurrentThread)");
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
     });
 
     // 2. multi_thread runtime (default with N workers)
@@ -32,8 +34,12 @@ fn main() {
 
     rt_multi.block_on(async {
         print_thread_id("Task 1 (MultiThread)");
-        let t1 = tokio::spawn(async { print_thread_id("Spawned A (MultiThread)"); });
-        let t2 = tokio::spawn(async { print_thread_id("Spawned B (MultiThread)"); });
+        let t1 = tokio::spawn(async {
+            print_thread_id("Spawned A (MultiThread)");
+        });
+        let t2 = tokio::spawn(async {
+            print_thread_id("Spawned B (MultiThread)");
+        });
         let _ = tokio::join!(t1, t2);
     });
 }

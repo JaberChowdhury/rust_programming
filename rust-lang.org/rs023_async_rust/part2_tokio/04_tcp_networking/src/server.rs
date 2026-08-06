@@ -1,7 +1,7 @@
-use tokio::net::TcpListener;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::TcpListener;
 
 pub async fn run_server() -> std::io::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:8080").await?;

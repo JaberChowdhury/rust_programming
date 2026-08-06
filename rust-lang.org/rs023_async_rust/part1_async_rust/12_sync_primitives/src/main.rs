@@ -2,7 +2,7 @@
 // WHY: standard library sync primitives (like Mutex) block the OS thread. In async, we must use primitives that yield to the runtime.
 
 use std::sync::Arc;
-use tokio::sync::{Mutex, RwLock, Semaphore, Barrier};
+use tokio::sync::{Barrier, Mutex, RwLock, Semaphore};
 use tokio::time::{sleep, Duration};
 
 #[tokio::main]
@@ -18,7 +18,9 @@ async fn main() {
             *lock += 1;
         }));
     }
-    for h in handles { h.await.unwrap(); }
+    for h in handles {
+        h.await.unwrap();
+    }
     println!("Final counter: {}", *counter.lock().await);
 
     // 2. RwLock - Many readers, few writers
@@ -27,7 +29,7 @@ async fn main() {
     let read_lock = cache.read().await;
     println!("Read: {}", *read_lock);
     drop(read_lock);
-    
+
     let mut write_lock = cache.write().await;
     *write_lock = "updated".to_string();
     println!("Wrote to cache");
@@ -46,7 +48,9 @@ async fn main() {
             println!("Task {} releasing permit", i);
         }));
     }
-    for h in handles { h.await.unwrap(); }
+    for h in handles {
+        h.await.unwrap();
+    }
 
     // 4. Barrier - Coordinate startup
     println!("\n--- tokio::sync::Barrier ---");
@@ -60,7 +64,9 @@ async fn main() {
             println!("Task {} crossed barrier", i);
         }));
     }
-    for h in handles { h.await.unwrap(); }
+    for h in handles {
+        h.await.unwrap();
+    }
 
     // DEADLOCK WARNING:
     // Using std::sync::Mutex across an .await point can deadlock the entire worker thread!

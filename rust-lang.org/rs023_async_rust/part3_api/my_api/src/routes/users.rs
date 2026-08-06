@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    routing::{get, put, delete},
+    routing::{delete, get, put},
     Json, Router,
 };
 use serde::Deserialize;
@@ -35,16 +35,19 @@ async fn list_users(
 ) -> Result<Json<Vec<UserResponse>>, ApiError> {
     let page = pagination.page.unwrap_or(1).max(1);
     let per_page = pagination.per_page.unwrap_or(20).clamp(1, 100);
-    
+
     let users = db::users::list_users(&state.db, page, per_page).await?;
-    
-    let response = users.into_iter().map(|u| UserResponse {
-        id: u.id,
-        username: u.username,
-        created_at: u.created_at,
-        updated_at: u.updated_at,
-    }).collect();
-    
+
+    let response = users
+        .into_iter()
+        .map(|u| UserResponse {
+            id: u.id,
+            username: u.username,
+            created_at: u.created_at,
+            updated_at: u.updated_at,
+        })
+        .collect();
+
     Ok(Json(response))
 }
 
@@ -53,9 +56,10 @@ async fn get_user(
     _auth: AuthUser,
     Path(id): Path<Uuid>,
 ) -> Result<Json<UserResponse>, ApiError> {
-    let user = db::users::get_user(&state.db, id).await?
+    let user = db::users::get_user(&state.db, id)
+        .await?
         .ok_or(ApiError::NotFound)?;
-        
+
     Ok(Json(UserResponse {
         id: user.id,
         username: user.username,
@@ -73,10 +77,11 @@ async fn update_user(
     if auth.user_id != id {
         return Err(ApiError::Auth("Forbidden: Owner only".into()));
     }
-    
-    let user = db::users::update_user(&state.db, id, &payload.username).await?
+
+    let user = db::users::update_user(&state.db, id, &payload.username)
+        .await?
         .ok_or(ApiError::NotFound)?;
-        
+
     Ok(Json(UserResponse {
         id: user.id,
         username: user.username,
@@ -93,8 +98,8 @@ async fn delete_user(
     if auth.user_id != id {
         return Err(ApiError::Auth("Forbidden: Owner only".into()));
     }
-    
+
     db::users::delete_user(&state.db, id).await?;
-    
+
     Ok(Json(()))
 }

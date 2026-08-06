@@ -1,6 +1,6 @@
 // CONCEPT: Async file I/O with Tokio.
 
-use tokio::fs::{File, self};
+use tokio::fs::{self, File};
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
 
 #[tokio::main]

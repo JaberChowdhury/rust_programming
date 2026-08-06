@@ -5,8 +5,14 @@ use std::time::Instant;
 
 #[tokio::main]
 async fn main() {
-    println!("Size of OS thread handle: {} bytes", std::mem::size_of::<std::thread::JoinHandle<()>>());
-    println!("Size of Tokio task handle: {} bytes", std::mem::size_of::<tokio::task::JoinHandle<()>>());
+    println!(
+        "Size of OS thread handle: {} bytes",
+        std::mem::size_of::<std::thread::JoinHandle<()>>()
+    );
+    println!(
+        "Size of Tokio task handle: {} bytes",
+        std::mem::size_of::<tokio::task::JoinHandle<()>>()
+    );
 
     let count = 1000;
 
@@ -35,7 +41,7 @@ async fn main() {
         let _ = handle.await;
     }
     println!("Async tasks total time: {:?}", start.elapsed());
-    
+
     println!("\n--- spawn_blocking demo ---");
     let blocking_result = tokio::task::spawn_blocking(|| {
         // CPU-bound work
@@ -44,7 +50,9 @@ async fn main() {
             sum += i;
         }
         sum
-    }).await.unwrap();
+    })
+    .await
+    .unwrap();
     println!("Result of blocking task: {}", blocking_result);
 }
 

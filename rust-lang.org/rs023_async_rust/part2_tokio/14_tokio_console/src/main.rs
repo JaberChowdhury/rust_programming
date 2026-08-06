@@ -11,7 +11,8 @@ async fn main() {
             loop {
                 tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             }
-        }).unwrap();
+        })
+        .unwrap();
 
     let task2 = tokio::task::Builder::new()
         .name("starved_task")
@@ -24,7 +25,8 @@ async fn main() {
                 }
                 tokio::task::yield_now().await;
             }
-        }).unwrap();
+        })
+        .unwrap();
 
     let _ = tokio::join!(task1, task2);
 }

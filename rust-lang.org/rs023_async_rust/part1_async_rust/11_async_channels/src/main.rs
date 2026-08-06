@@ -1,7 +1,7 @@
 // CONCEPT: All four Tokio channel types with real use cases.
 // WHY: Channels are the standard way to communicate between async tasks without sharing memory.
 
-use tokio::sync::{mpsc, oneshot, broadcast, watch};
+use tokio::sync::{broadcast, mpsc, oneshot, watch};
 use tokio::time::{sleep, Duration};
 
 #[tokio::main]

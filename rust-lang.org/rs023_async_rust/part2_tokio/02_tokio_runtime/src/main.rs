@@ -18,7 +18,9 @@ fn main() {
         println!("Hello from manual runtime!");
         tokio::spawn(async {
             println!("Spawned task!");
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
     });
 }
 // EXERCISE:

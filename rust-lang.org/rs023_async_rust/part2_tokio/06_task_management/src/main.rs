@@ -7,7 +7,11 @@ async fn main() {
     // Spawn async tasks
     for i in 0..5 {
         let handle = tokio::spawn(async move {
-            println!("Task {} running on thread {:?}", i, std::thread::current().id());
+            println!(
+                "Task {} running on thread {:?}",
+                i,
+                std::thread::current().id()
+            );
             i * 2
         });
         handles.push(handle);

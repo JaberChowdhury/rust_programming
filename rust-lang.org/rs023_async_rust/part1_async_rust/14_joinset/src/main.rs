@@ -1,10 +1,10 @@
 // CONCEPT: Structured concurrency with `JoinSet`.
 // WHY: Managing a Vec of JoinHandles is tedious and doesn't handle dynamic spawning/reaping well. JoinSet solves this.
 
+use std::sync::Arc;
+use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use tokio::time::{sleep, Duration};
-use tokio::sync::Semaphore;
-use std::sync::Arc;
 
 async fn scrape_url(id: usize, fail: bool) -> Result<String, String> {
     sleep(Duration::from_millis(100)).await;
@@ -50,7 +50,10 @@ async fn main() {
         }
     }
 
-    println!("Finished processing! Successes: {}, Failures: {}", successes, failures);
+    println!(
+        "Finished processing! Successes: {}, Failures: {}",
+        successes, failures
+    );
 
     // Abort all demo
     println!("\n--- Abort all demo ---");
@@ -61,7 +64,7 @@ async fn main() {
             println!("Task {} finished", i);
         });
     }
-    
+
     sleep(Duration::from_millis(50)).await;
     abort_set.abort_all();
     println!("Aborted all tasks in the set. Awaiting completion...");

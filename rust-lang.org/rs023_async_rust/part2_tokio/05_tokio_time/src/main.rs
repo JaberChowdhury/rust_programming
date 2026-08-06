@@ -1,6 +1,6 @@
 // CONCEPT: All Tokio time utilities.
 
-use tokio::time::{sleep, interval, timeout, Instant, Duration};
+use tokio::time::{interval, sleep, timeout, Duration, Instant};
 
 #[tokio::main]
 async fn main() {

@@ -17,11 +17,9 @@ async fn main() {
     println!("Spawning 10 tasks...");
     for i in 0..10 {
         let data_clone = Arc::clone(&shared_data);
-        
+
         // Spawn requires 'static, so we move owned data (or Arc clones) into it.
-        let handle = tokio::spawn(async move {
-            do_work(i, data_clone).await
-        });
+        let handle = tokio::spawn(async move { do_work(i, data_clone).await });
         handles.push(handle);
     }
 
@@ -42,7 +40,7 @@ async fn main() {
     slow_task.abort(); // Cancel the task
     let res = slow_task.await;
     println!("Slow task result after abort: {:?}", res);
-    
+
     // THIS WONT COMPILE: Capturing a non-Send type
     // let rc = std::rc::Rc::new(5);
     // tokio::spawn(async move {

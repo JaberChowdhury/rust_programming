@@ -4,8 +4,8 @@
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use std::time::{Duration, Instant};
 use std::thread;
+use std::time::{Duration, Instant};
 
 // 1. TimerFuture: Spawns a background OS thread to wait, then wakes the async task.
 struct TimerFuture {
@@ -23,7 +23,7 @@ impl Future for TimerFuture {
             if !self.started {
                 let waker = cx.waker().clone();
                 let wait_time = self.deadline.duration_since(Instant::now());
-                
+
                 // Spawn a blocking thread just to sleep and wake.
                 // In a real runtime like Tokio, epoll/kqueue handles this without extra threads.
                 thread::spawn(move || {
@@ -62,11 +62,11 @@ struct Poll3Times<F> {
 
 impl<F: Future + Unpin> Future for Poll3Times<F> {
     type Output = F::Output;
-    
+
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         self.count += 1;
         println!("Poll3Times: Poll #{}", self.count);
-        
+
         let inner = Pin::new(&mut self.inner);
         inner.poll(cx)
     }
@@ -75,9 +75,9 @@ impl<F: Future + Unpin> Future for Poll3Times<F> {
 #[tokio::main]
 async fn main() {
     println!("--- TimerFuture ---");
-    let timer = TimerFuture { 
+    let timer = TimerFuture {
         deadline: Instant::now() + Duration::from_millis(500),
-        started: false 
+        started: false,
     };
     println!("Awaiting timer...");
     timer.await;

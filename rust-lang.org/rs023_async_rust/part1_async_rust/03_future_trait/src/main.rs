@@ -1,11 +1,11 @@
 // CONCEPT: Implement `Future` manually — no async/await, no runtime magic.
 // WHY: To understand the core polling mechanism of Rust's async design.
 
+use std::collections::VecDeque;
 use std::future::Future;
 use std::pin::Pin;
-use std::task::{Context, Poll, Waker, RawWaker, RawWakerVTable};
-use std::sync::{Arc, Mutex};
-use std::collections::VecDeque;
+// use std::sync::{Arc, Mutex};
+use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
 struct ReadyFuture<T>(Option<T>);
 
@@ -45,11 +45,13 @@ struct DummyWaker;
 impl DummyWaker {
     fn raw_waker() -> RawWaker {
         fn no_op(_: *const ()) {}
-        fn clone(_: *const ()) -> RawWaker { DummyWaker::raw_waker() }
+        fn clone(_: *const ()) -> RawWaker {
+            DummyWaker::raw_waker()
+        }
         let vtable = &RawWakerVTable::new(clone, no_op, no_op, no_op);
         RawWaker::new(std::ptr::null(), vtable)
     }
-    
+
     fn waker() -> Waker {
         unsafe { Waker::from_raw(Self::raw_waker()) }
     }
@@ -68,7 +70,7 @@ fn run_executor(mut tasks: VecDeque<Task>) {
 
 fn main() {
     let mut tasks: VecDeque<Task> = VecDeque::new();
-    
+
     tasks.push_back(Box::pin(async {
         let f = ReadyFuture(Some("Hello"));
         let res = f.await;

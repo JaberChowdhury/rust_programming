@@ -15,7 +15,10 @@ async fn main() {
         let _ = h.await.unwrap();
     }
 
-    println!("Spawning and awaiting 10k tasks took: {:?}", start.elapsed());
+    println!(
+        "Spawning and awaiting 10k tasks took: {:?}",
+        start.elapsed()
+    );
 }
 // EXERCISE:
 // 1. Run in --release mode and observe the speedup.

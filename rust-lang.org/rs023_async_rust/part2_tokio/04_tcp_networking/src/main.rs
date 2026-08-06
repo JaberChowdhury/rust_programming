@@ -1,7 +1,7 @@
 // CONCEPT: Build a working TCP echo server and client.
 
-mod server;
 mod client;
+mod server;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {

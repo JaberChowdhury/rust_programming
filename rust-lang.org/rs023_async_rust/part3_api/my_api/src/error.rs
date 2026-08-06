@@ -27,15 +27,24 @@ impl IntoResponse for ApiError {
                     if db_err.is_unique_violation() {
                         (StatusCode::CONFLICT, "Resource already exists".to_string())
                     } else {
-                        (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string())
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            "Database error".to_string(),
+                        )
                     }
                 } else {
-                    (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string())
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Database error".to_string(),
+                    )
                 }
             }
             ApiError::Auth(msg) => (StatusCode::UNAUTHORIZED, msg),
             ApiError::NotFound => (StatusCode::NOT_FOUND, "Not found".to_string()),
-            ApiError::Internal => (StatusCode::INTERNAL_SERVER_ERROR, "Internal error".to_string()),
+            ApiError::Internal => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Internal error".to_string(),
+            ),
             ApiError::Validation(msg) => (StatusCode::UNPROCESSABLE_ENTITY, msg),
         };
 

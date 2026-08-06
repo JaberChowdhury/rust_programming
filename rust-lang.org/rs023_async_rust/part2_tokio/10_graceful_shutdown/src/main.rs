@@ -6,7 +6,7 @@ use tokio::time::{sleep, Duration};
 #[tokio::main]
 async fn main() {
     let (tx, mut rx1) = broadcast::channel(1);
-    
+
     let worker1 = tokio::spawn(async move {
         loop {
             tokio::select! {
@@ -24,9 +24,9 @@ async fn main() {
     println!("Press Ctrl+C to shutdown...");
     tokio::signal::ctrl_c().await.unwrap();
     println!("Shutdown signal received");
-    
+
     let _ = tx.send(());
-    
+
     let _ = tokio::time::timeout(Duration::from_secs(2), worker1).await;
     println!("All workers exited");
 }

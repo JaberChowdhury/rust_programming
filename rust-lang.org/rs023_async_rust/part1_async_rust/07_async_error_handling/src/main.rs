@@ -1,8 +1,8 @@
 // CONCEPT: Master error propagation in async code.
 // WHY: Error handling in async functions behaves much like sync Rust, but task spawning introduces extra layers of `Result`.
 
-use thiserror::Error;
 use anyhow::Context;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum MyError {
@@ -22,7 +22,9 @@ async fn fetch_data(fail: bool) -> Result<String, MyError> {
 
 async fn process_data(fail: bool) -> anyhow::Result<String> {
     // 1. Using `?` operator and wrapping with context
-    let data = fetch_data(fail).await.context("Failed to fetch data during processing")?;
+    let data = fetch_data(fail)
+        .await
+        .context("Failed to fetch data during processing")?;
     Ok(format!("Processed: {}", data))
 }
 
@@ -41,10 +43,8 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // Error in spawned task (Double Result)
-    let handle = tokio::spawn(async {
-        fetch_data(true).await
-    });
-    
+    let handle = tokio::spawn(async { fetch_data(true).await });
+
     // The `.await` returns a Result<Result<String, MyError>, JoinError>
     let join_result = handle.await;
     match join_result {

@@ -1,14 +1,14 @@
 // CONCEPT: Async streams and tokio-stream.
 
-use tokio_stream::StreamExt;
-use tokio_stream::wrappers::ReceiverStream;
-use tokio::sync::mpsc;
 use async_stream::stream;
+use tokio::sync::mpsc;
+use tokio_stream::wrappers::ReceiverStream;
+use tokio_stream::StreamExt;
 
 #[tokio::main]
 async fn main() {
     let (tx, rx) = mpsc::channel(10);
-    
+
     tokio::spawn(async move {
         tx.send(1).await.unwrap();
         tx.send(2).await.unwrap();

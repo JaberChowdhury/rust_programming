@@ -1,8 +1,8 @@
 // CONCEPT: Understand why `Pin` exists through a self-referential struct example.
 // WHY: Async blocks often compile down to state machines that contain references to their own internal fields. `Pin` guarantees they aren't moved in memory.
 
-use std::pin::Pin;
 use std::marker::PhantomPinned;
+use std::pin::Pin;
 use tokio_stream::StreamExt;
 
 // A self-referential struct simulation
@@ -20,9 +20,9 @@ impl SelfReferential {
             pointer: std::ptr::null(),
             _marker: PhantomPinned,
         });
-        
+
         let ptr: *const String = &boxed.data;
-        
+
         // Unsafe: we are modifying the struct to point to its own heap allocation.
         // Once pinned, this is safe as long as it isn't moved.
         unsafe {
@@ -30,10 +30,10 @@ impl SelfReferential {
             let unpinned = Pin::get_unchecked_mut(mut_ref);
             unpinned.pointer = ptr;
         }
-        
+
         boxed.into()
     }
-    
+
     fn print_data(self: Pin<&Self>) {
         unsafe {
             println!("Data via pointer: {}", &*self.pointer);

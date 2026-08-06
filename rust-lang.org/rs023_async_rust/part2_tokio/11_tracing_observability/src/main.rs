@@ -1,6 +1,6 @@
 // CONCEPT: Structured logging and distributed tracing.
 
-use tracing::{info, debug, instrument};
+use tracing::{debug, info, instrument};
 
 #[instrument]
 async fn do_work(id: u32) {

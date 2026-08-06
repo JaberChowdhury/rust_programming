@@ -1,9 +1,9 @@
 // CONCEPT: Process a sequence of async values.
 // WHY: Streams are the async equivalent of iterators. They are crucial for processing paginated APIs, websockets, or event logs.
 
-use tokio_stream::StreamExt;
 use async_stream::stream;
 use tokio::time::{sleep, Duration};
+use tokio_stream::StreamExt;
 
 async fn fetch_page(page: usize) -> Option<Vec<usize>> {
     sleep(Duration::from_millis(100)).await;
@@ -47,7 +47,7 @@ async fn main() {
         .filter(|x| x % 2 == 0)
         .map(|x| x * 10)
         .take(3);
-        
+
     while let Some(v) = mapped_stream.next().await {
         println!("Mapped: {}", v);
     }

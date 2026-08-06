@@ -9,9 +9,9 @@ async fn slow_db_query() -> String {
 }
 
 // Deadline propagation helper
-async fn with_deadline<F, T>(deadline: Duration, fut: F) -> Result<T, ()> 
-where 
-    F: std::future::Future<Output = T> 
+async fn with_deadline<F, T>(deadline: Duration, fut: F) -> Result<T, ()>
+where
+    F: std::future::Future<Output = T>,
 {
     match timeout(deadline, fut).await {
         Ok(val) => Ok(val),
@@ -32,14 +32,14 @@ async fn main() {
     // 2. select! for cancellation via signal
     println!("\n--- select! Cancellation ---");
     let (tx, rx) = tokio::sync::oneshot::channel::<()>();
-    
+
     let work_task = tokio::spawn(async move {
         tokio::select! {
             _ = slow_db_query() => println!("Work completed normally"),
             _ = rx => println!("Work was cancelled by signal!"),
         }
     });
-    
+
     sleep(Duration::from_millis(100)).await;
     tx.send(()).unwrap();
     work_task.await.unwrap();
