@@ -80,3 +80,37 @@ pub fn clear_terminal() {
     print!("\x1B[2J\x1B[1;1H");
     let _ = io::stdout().flush().unwrap();
 }
+
+pub fn get_todo_by_id(conn: &Connection, id: i64) -> Result<Option<Todo>> {
+    let mut stmt = conn.prepare("SELECT id, title, description, is_done FROM todos WHERE id = ?1")?;
+    let mut rows = stmt.query(params![id])?;
+
+    if let Some(row) = rows.next()? {
+        let is_done_num: i32 = row.get(3)?;
+        Ok(Some(Todo {
+            id: row.get(0)?,
+            title: row.get(1)?,
+            description: row.get(2)?,
+            is_completed: is_done_num != 0,
+        }))
+    } else {
+        Ok(None)
+    }
+}
+
+pub fn search_todos(conn: &Connection, query: &str) -> Result<Vec<Todo>> {
+    let mut stmt = conn.prepare("SELECT id, title, description, is_done FROM todos WHERE title LIKE ?1 OR description LIKE ?1 ORDER BY id ASC")?;
+    let search_term = format!("%{}%", query);
+    
+    let rows = stmt.query_map(params![search_term], |row| {
+        let is_done_num: i32 = row.get(3)?;
+        Ok(Todo {
+            id: row.get(0)?,
+            title: row.get(1)?,
+            description: row.get(2)?,
+            is_completed: is_done_num != 0,
+        })
+    })?;
+
+    rows.collect()
+}
