@@ -26,3 +26,4 @@ target
 /target
 Cargo.lock
 projects/file_organiser/lol/
+projects/todo_cli/todos.db

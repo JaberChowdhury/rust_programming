@@ -1,129 +1,115 @@
-use std::io;
+mod input;
 
-use rand::RngExt;
+use input::take_input;
+mod utils;
+use utils::init_db;
 
-#[derive(Debug)]
-struct Todo {
-    id: String,
-    title: String,
-    description: String,
-    // is_deleted: bool,
-}
-fn random_id() -> String {
-    let charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+use rusqlite::{Connection, Result};
 
-    let mut id = String::new();
+use crate::utils::{
+    Todo, add_todo, clear_terminal, delete_todo, select_all_todos, toggle_todo, update_todo,
+};
 
-    for i in 1..17 {
-        let random_idx = rand::rng().random_range(0..charset.len());
-        if let Some(random_char) = charset.chars().nth(random_idx) {
-            id.push(random_char);
-            if i % 4 == 0 && i < 16 {
-                id.push('-');
-            }
-        }
+fn print_todos(todos: &[Todo]) {
+    if todos.is_empty() {
+        println!("\n  (No tasks found)\n");
+        return;
     }
-    id
-}
-fn add_todos(todos: &mut Vec<Todo>) {
-    let mut input_title = String::new();
-    let mut input_description = String::new();
-    println!("Please enter a title :: ");
-    io::stdin()
-        .read_line(&mut input_title)
-        .expect("Failed to take user input");
-    println!("Please enter a description::");
-    io::stdin()
-        .read_line(&mut input_description)
-        .expect("Failed to take user input");
-
-    todos.push(Todo {
-        id: random_id(),
-        title: input_title.trim().to_string(),
-        description: input_description.trim().to_string(),
-    });
-}
-fn delete_todos(todos: &mut Vec<Todo>) {
-    let mut id_input = String::new();
-    println!("Please enter an id to delete the todo::");
-    io::stdin()
-        .read_line(&mut id_input)
-        .expect("Failed to take user input");
-    let id = id_input.trim().to_string();
-    let index_to_delete = todos.iter().position(|todo| todo.id == id);
-    match index_to_delete {
-        Some(index) => {
-            todos.remove(index);
-        }
-        None => {
-            println!("Todo not found");
-        }
+    println!("\n=================== TODOS ===================");
+    for t in todos {
+        let mark = if t.is_completed { "[X]" } else { "[ ]" };
+        let desc = match &t.description {
+            Some(d) if !d.is_empty() => format!(" - {d}"),
+            _ => String::new(),
+        };
+        println!("{mark} #{:<3} {}{}", t.id, t.title, desc);
     }
+    println!("=============================================\n");
 }
-fn update_todos(todos: &mut Vec<Todo>) {
-    let mut id_input = String::new();
-    // let mut input_title = String::new();
-    // let mut input_description = String::new();
-    println!("Please enter an valid id to update the todo:: ");
-    io::stdin()
-        .read_line(&mut id_input)
-        .expect("Failed to take user input");
 
-    let id = id_input.trim().to_string();
+fn main() -> Result<()> {
+    let conn = Connection::open("todos.db")?;
+    init_db(&conn)?;
 
-    let id_for_update = todos.iter().position(|todo| todo.id == id);
+    println!("Welcome to Todo CLI!");
 
-    match id_for_update {
-        Some(index) => {
-            let mut input_title = String::new();
-            let mut input_description = String::new();
-
-            println!("Please enter a new title :: ");
-            io::stdin()
-                .read_line(&mut input_title)
-                .expect("Failed to take user input");
-
-            println!("Please enter a new description::");
-            io::stdin()
-                .read_line(&mut input_description)
-                .expect("Failed to take user input");
-
-            todos[index].title = input_title.trim().to_string();
-            todos[index].description = input_description.trim().to_string();
-
-            println!("Todo updated successfully!");
-        }
-        None => {
-            println!("Todo not found");
-        }
-    }
-}
-fn print_todos(todos: &mut Vec<Todo>) {
-    dbg!(todos);
-}
-fn todos_cli(todos: &mut Vec<Todo>) {
     loop {
-        let mut input = String::new();
-        println!(
-            "\n\nChoose any valid operation from below\n1. Add todo\n2. Delete todo\n3. Show todos\n4. Update todo\n5. Quit"
-        );
-        io::stdin()
-            .read_line(&mut input)
-            .expect("something went wrong");
-        let choice = input.trim().parse::<i32>().expect("msg");
+        println!("\n[1] List Todos");
+        println!("[2] Add Todo");
+        println!("[3] Toggle Done / Pending");
+        println!("[4] Update Todo Details");
+        println!("[5] Delete Todo");
+        println!("[6] Exit");
+
+        let choice: u32 = take_input("Choose an option [1-6]:");
+
         match choice {
-            1 => add_todos(todos),
-            2 => delete_todos(todos),
-            3 => print_todos(todos),
-            4 => update_todos(todos),
-            5 => break,
-            _ => println!("Something went wrong. Try again"),
+            1 => {
+                let todos = select_all_todos(&conn)?;
+                clear_terminal();
+                print_todos(&todos);
+            }
+            2 => {
+                let title: String = take_input("Title:");
+                let desc_input: String = take_input("Description (press Enter to skip):");
+                let desc = if desc_input.is_empty() {
+                    None
+                } else {
+                    Some(desc_input.as_str())
+                };
+
+                let new_id = add_todo(&conn, &title, desc)?;
+                println!("Added todo with ID: #{new_id}");
+            }
+            3 => {
+                let id: i64 = take_input("Todo ID to toggle:");
+                let is_done: bool = take_input("Mark as completed? (true / false):");
+
+                match toggle_todo(&conn, id, is_done)? {
+                    true => println!("Todo #{id} updated."),
+                    false => println!("Error: Todo #{id} not found."),
+                }
+            }
+            4 => {
+                let id: i64 = take_input("Todo ID to update:");
+                let title: String = take_input("New title:");
+                let desc_input: String = take_input("New description (press Enter to skip):");
+                let is_completed: bool = take_input("Is completed? (true / false):");
+
+                let todo = Todo {
+                    id,
+                    title,
+                    description: if desc_input.is_empty() {
+                        None
+                    } else {
+                        Some(desc_input)
+                    },
+                    is_completed,
+                };
+
+                let affected = update_todo(&conn, &todo)?;
+                if affected > 0 {
+                    println!("Todo #{id} updated successfully.");
+                } else {
+                    println!("Error: Todo #{id} not found.");
+                }
+            }
+            5 => {
+                let id: i64 = take_input("Todo ID to delete:");
+                let affected = delete_todo(&conn, id)?;
+                if affected > 0 {
+                    println!("Todo #{id} deleted.");
+                } else {
+                    println!("Error: Todo #{id} not found.");
+                }
+            }
+            6 => {
+                println!("Goodbye!");
+                break;
+            }
+            _ => println!("Invalid option. Please choose between 1 and 6."),
         }
     }
-}
 
-fn main() {
-    let mut todos: Vec<Todo> = vec![];
-    todos_cli(&mut todos);
-    // dbg!(random_id());
+    Ok(())
 }
