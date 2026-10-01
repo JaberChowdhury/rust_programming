@@ -1,57 +1,39 @@
 use axum::{
-    Json, Router,
-    http::StatusCode,
-    routing::{get, post},
+    Router,
+    body::Body,
+    http::{Request, Response},
+    routing::get,
 };
-use serde::{Deserialize, Serialize};
+use std::time::Duration;
+use tower_http::trace::TraceLayer;
+use tracing::Span;
 
 #[tokio::main]
 async fn main() {
-    // initialize tracing
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt()
+        .compact() // Compact formatting keeps it to a single line
+        .init();
 
-    // build our application with a route
-    let app = Router::new()
-        // `GET /` goes to `root`
-        .route("/", get(root))
-        // `POST /users` goes to `create_user`
-        .route("/users", post(create_user));
+    let app = Router::new().route("/", get(root)).layer(
+        TraceLayer::new_for_http()
+            // Disable the default span generation and request-start logs
+            .make_span_with(|_req: &Request<Body>| Span::none())
+            .on_request(())
+            // Single-line summary fired once the response finishes
+            .on_response(|res: &Response<Body>, latency: Duration, _span: &Span| {
+                tracing::info!(
+                    status = res.status().as_u16(),
+                    latency = ?latency,
+                    "request completed"
+                );
+            }),
+    );
 
-    // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await;
+    println!("Server listening on {}", listener.local_addr().unwrap());
+    axum::serve(listener, app).await.unwrap();
 }
 
-// basic handler that responds with a static string
 async fn root() -> &'static str {
-    "Hello, World!"
-}
-
-async fn create_user(
-    // this argument tells axum to parse the request body
-    // as JSON into a `CreateUser` type
-    Json(payload): Json<CreateUser>,
-) -> (StatusCode, Json<User>) {
-    // insert your application logic here
-    let user = User {
-        id: 1337,
-        username: payload.username,
-    };
-
-    // this will be converted into a JSON response
-    // with a status code of `201 Created`
-    (StatusCode::CREATED, Json(user))
-}
-
-// the input to our `create_user` handler
-#[derive(Deserialize)]
-struct CreateUser {
-    username: String,
-}
-
-// the output to our `create_user` handler
-#[derive(Serialize)]
-struct User {
-    id: u64,
-    username: String,
+    "Hello, world!"
 }
