@@ -1,0 +1,6 @@
+[package]
+name = "a_turn_into_a_palindrome"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
